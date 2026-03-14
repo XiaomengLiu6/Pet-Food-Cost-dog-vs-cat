@@ -1,0 +1,1 @@
+window.chartDispatcher = d3.dispatch("dateHover", "dateOut");

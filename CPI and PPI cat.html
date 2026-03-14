@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CPI vs PPI for Pet Food</title>
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v6.js"></script>
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+}
+
+#chart{
+  margin:40px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h2>CPI vs PPI for Cat Food</h2>
+
+<div id="chart2"></div>
+
+<script>
+
+// margins and size
+const margin = {top: 50, right: 50, bottom: 50, left: 60},
+      width = 800 - margin.left - margin.right,
+      height = 600 - margin.top - margin.bottom;
+
+// create svg
+const svg = d3.select("#chart2")
+  .append("svg")
+  .attr("width", width + margin.left + margin.right)
+  .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+  .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+const parseDate = d3.timeParse("%Y-%m-%d");
+
+// load datasets
+Promise.all([
+  d3.csv("CPI.csv"),
+  d3.csv("PPI cat.csv")
+]).then(function([cpi, ppi]) {
+
+  // convert data
+  cpi.forEach(d => {
+    d.date = parseDate(d.observation_date);
+    d.value = +d.CUSR0000SS61031;
+  });
+
+  ppi.forEach(d => {
+    d.date = parseDate(d.observation_date);
+    d.value = +d.PCU3111113111114;
+  });
+
+  const startDate = new Date(2002, 0, 1);
+  const endDate = new Date(2024, 11, 31);
+
+  cpi = cpi.filter(d => d.date >= startDate && d.date <= endDate);
+  ppi = ppi.filter(d => d.date >= startDate && d.date <= endDate);
+
+  const allData = cpi.concat(ppi);
+
+  // x scale
+  const x = d3.scaleTime()
+    .domain([startDate, endDate])
+    .range([0, width]);
+
+  // y scale
+  const y = d3.scaleLinear()
+    .domain([0, d3.max(allData, d => d.value)])
+    .range([height, 0]);
+
+  // x axis
+  svg.append("g")
+    .attr("transform", `translate(0,${height})`)
+    .call(d3.axisBottom(x));
+
+  // y axis
+  svg.append("g")
+    .call(d3.axisLeft(y));
+
+  // line generator
+  const line = d3.line()
+    .x(d => x(d.date))
+    .y(d => y(d.value));
+
+  // CPI line
+  svg.append("path")
+    .datum(cpi)
+    .attr("fill", "none")
+    .attr("stroke", "steelblue")
+    .attr("stroke-width", 2)
+    .attr("d", line);
+
+  // PPI line
+  svg.append("path")
+    .datum(ppi)
+    .attr("fill", "none")
+    .attr("stroke", "red")
+    .attr("stroke-width", 2)
+    .attr("d", line);
+
+  const legendData = [
+    {name: "CPI", color: "steelblue"},
+    {name: "PPI", color: "red"}
+  ];
+  const legend = svg.append("g")
+    .attr("transform", `translate(${width - 150}, 20)`);
+
+  const legendItem = legend.selectAll(".legend-item")
+  .data(legendData)
+  .enter()
+  .append("g")
+  .attr("class", "legend-item")
+  .attr("transform", (d, i) => `translate(0, ${i * 25})`);
+
+  legendItem.append("line")
+  .attr("x1", 0)
+  .attr("x2", 30)
+  .attr("y1", 0)
+  .attr("y2", 0)
+  .attr("stroke", d => d.color)
+  .attr("stroke-width", 3);
+
+  legendItem.append("text")
+  .attr("x", 40)
+  .attr("y", 5)
+  .text(d => d.name)
+  .style("font-size", "14px")
+  .attr("alignment-baseline", "middle");
+});
+
+</script>
+
+</body>
+</html>

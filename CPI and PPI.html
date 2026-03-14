@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CPI vs PPI for Pet Food</title>
+
+<script src="https://d3js.org/d3.v6.js"></script>
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+}
+
+#chart{
+  margin: 40px;
+  position: relative;
+}
+
+.tooltip{
+  position: absolute;
+  visibility: hidden;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+</style>
+</head>
+
+<body>
+
+<h2>CPI vs PPI for Dog and Cat Food</h2>
+
+<div id="chart1"></div>
+
+<script>
+
+// margins and size
+const margin = {top: 50, right: 50, bottom: 50, left: 60},
+      width = 800 - margin.left - margin.right,
+      height = 600 - margin.top - margin.bottom;
+
+// create tooltip
+const tooltip = d3.select("#chart1")
+  .append("div")
+  .attr("class", "tooltip");
+
+// create svg
+const svg = d3.select("#chart1")
+  .append("svg")
+  .attr("width", width + margin.left + margin.right)
+  .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+  .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+const parseDate = d3.timeParse("%Y-%m-%d");
+const formatDate = d3.timeFormat("%b %Y");
+
+// load datasets
+Promise.all([
+  d3.csv("CPI.csv"),
+  d3.csv("PPI dog and cat.csv")
+]).then(function([cpi, ppi]) {
+
+  // convert data
+  cpi.forEach(d => {
+    d.date = parseDate(d.observation_date);
+    d.value = +d.CUSR0000SS61031;
+  });
+
+  ppi.forEach(d => {
+    d.date = parseDate(d.observation_date);
+    d.value = +d.PCU311111311111;
+  });
+
+  const startDate = new Date(2002, 0, 1);
+  const endDate = new Date(2024, 11, 31);
+
+  cpi = cpi.filter(d => d.date >= startDate && d.date <= endDate);
+  ppi = ppi.filter(d => d.date >= startDate && d.date <= endDate);
+
+  const allData = cpi.concat(ppi);
+
+  // x scale
+  const x = d3.scaleTime()
+    .domain([startDate, endDate])
+    .range([0, width]);
+
+  // y scale
+  const y = d3.scaleLinear()
+    .domain([0, d3.max(allData, d => d.value)])
+    .nice()
+    .range([height, 0]);
+
+  // x axis
+  svg.append("g")
+    .attr("transform", `translate(0,${height})`)
+    .call(d3.axisBottom(x));
+  svg.append("text")
+  .attr("x", width / 2)
+  .attr("y", height + 40)
+  .attr("text-anchor", "middle")
+  .style("font-size", "16px")
+  .text("Year");
+
+  // y axis
+  svg.append("g")
+    .call(d3.axisLeft(y));
+  svg.append("text")
+  .attr("transform", "rotate(-90)")
+  .attr("x", -height / 2)
+  .attr("y", -45)
+  .attr("text-anchor", "middle")
+  .style("font-size", "16px")
+  .text("Price Index");
+
+  // line generator
+  const line = d3.line()
+    .x(d => x(d.date))
+    .y(d => y(d.value));
+
+  // CPI line
+  svg.append("path")
+    .datum(cpi)
+    .attr("fill", "none")
+    .attr("stroke", "steelblue")
+    .attr("stroke-width", 2)
+    .attr("d", line);
+
+  // PPI line
+  svg.append("path")
+    .datum(ppi)
+    .attr("fill", "none")
+    .attr("stroke", "red")
+    .attr("stroke-width", 2)
+    .attr("d", line);
+
+  // --------legend---------------------------//
+  const legendData = [
+    {name: "CPI", color: "steelblue"},
+    {name: "PPI", color: "red"}
+  ];
+
+  const legend = svg.append("g")
+    .attr("transform", `translate(${width - 150}, 20)`);
+
+  const legendItem = legend.selectAll(".legend-item")
+    .data(legendData)
+    .enter()
+    .append("g")
+    .attr("class", "legend-item")
+    .attr("transform", (d, i) => `translate(0, ${i * 25})`);
+
+  legendItem.append("line")
+    .attr("x1", 0)
+    .attr("x2", 30)
+    .attr("y1", 0)
+    .attr("y2", 0)
+    .attr("stroke", d => d.color)
+    .attr("stroke-width", 3);
+
+  legendItem.append("text")
+    .attr("x", 40)
+    .attr("y", 5)
+    .text(d => d.name)
+    .style("font-size", "14px")
+    .attr("alignment-baseline", "middle");
+
+  // ----- mouseover stuff -----
+
+  // vertical hover line
+  const hoverLine = svg.append("line")
+    .attr("stroke", "#999")
+    .attr("stroke-dasharray", "4 4")
+    .attr("y1", 0)
+    .attr("y2", height)
+    .style("opacity", 0);
+
+  // focus dot for CPI
+  const focusCPI = svg.append("circle")
+    .attr("r", 5)
+    .attr("fill", "steelblue")
+    .style("opacity", 0);
+
+  // focus dot for PPI
+  const focusPPI = svg.append("circle")
+    .attr("r", 5)
+    .attr("fill", "red")
+    .style("opacity", 0);
+
+  // bisector to find nearest date
+  const bisectDate = d3.bisector(d => d.date).left;
+
+  // transparent rectangle for mouse tracking
+  svg.append("rect")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("fill", "none")
+    .attr("pointer-events", "all")
+    .on("mouseover", function() {
+      tooltip.style("visibility", "visible");
+      hoverLine.style("opacity", 1);
+      focusCPI.style("opacity", 1);
+      focusPPI.style("opacity", 1);
+    })
+    .on("mousemove", function(event) {
+      const [mx] = d3.pointer(event, this);
+      const hoveredDate = x.invert(mx);
+
+      // find nearest CPI point
+      const iCPI = bisectDate(cpi, hoveredDate, 1);
+      const d0CPI = cpi[iCPI - 1];
+      const d1CPI = cpi[iCPI];
+      const cpiPoint = !d1CPI ? d0CPI : (hoveredDate - d0CPI.date > d1CPI.date - hoveredDate ? d1CPI : d0CPI);
+
+      // find nearest PPI point
+      const iPPI = bisectDate(ppi, hoveredDate, 1);
+      const d0PPI = ppi[iPPI - 1];
+      const d1PPI = ppi[iPPI];
+      const ppiPoint = !d1PPI ? d0PPI : (hoveredDate - d0PPI.date > d1PPI.date - hoveredDate ? d1PPI : d0PPI);
+
+      hoverLine
+        .attr("x1", x(cpiPoint.date))
+        .attr("x2", x(cpiPoint.date));
+
+      focusCPI
+        .attr("cx", x(cpiPoint.date))
+        .attr("cy", y(cpiPoint.value));
+
+      focusPPI
+        .attr("cx", x(ppiPoint.date))
+        .attr("cy", y(ppiPoint.value));
+
+      tooltip
+        .style("visibility", "visible")
+        .style("left", (event.pageX + 15) + "px")
+        .style("top", (event.pageY - 28) + "px")
+        .html(
+          `<strong>${formatDate(cpiPoint.date)}</strong><br>
+           CPI: ${cpiPoint.value.toFixed(2)}<br>
+           PPI: ${ppiPoint.value.toFixed(2)}`
+        );
+    })
+    .on("mouseout", function() {
+      tooltip.style("visibility", "hidden");
+      hoverLine.style("opacity", 0);
+      focusCPI.style("opacity", 0);
+      focusPPI.style("opacity", 0);
+    });
+
+});
+</script>
+
+</body>
+</html>

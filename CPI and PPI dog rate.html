@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CPI vs PPI for Pet Food</title>
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v6.js"></script>
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+}
+
+#chart{
+  margin:40px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h2>CPI vs PPI for Dog Food increasing rate</h2>
+
+<div id="chart"></div>
+
+<script>
+
+// margins and size
+const margin = {top: 50, right: 50, bottom: 50, left: 60},
+      width = 800 - margin.left - margin.right,
+      height = 600 - margin.top - margin.bottom;
+
+// create svg
+const svg = d3.select("#chart")
+  .append("svg")
+  .attr("width", width + margin.left + margin.right)
+  .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+  .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+const parseDate = d3.timeParse("%Y-%m-%d");
+
+// load datasets
+Promise.all([
+  d3.csv("CPI.csv"),
+  d3.csv("PPI dog.csv")
+]).then(function([cpi, ppi]) {
+
+  // convert data
+  cpi.forEach(d => {
+    d.date = parseDate(d.observation_date);
+    d.value = +d.CUSR0000SS61031;
+  });
+
+  ppi.forEach(d => {
+    d.date = parseDate(d.observation_date);
+    d.value = +d.PCU3111113111111;
+  });
+
+  //change value to increase rate
+  function computeRate(data){
+    for(let i = data.length - 1; i > 0; i--){
+      data[i].growth = (data[i].value - data[i-1].value) / data[i-1].value * 100;
+    }
+    data[0].growth = 0; // set the first value to 0 since we cannot compute the rate for it
+  }
+
+  const startDate = new Date(2002, 0, 1);
+  const endDate = new Date(2024, 11, 31);
+
+  cpi = cpi.filter(d => d.date >= startDate && d.date <= endDate);
+  ppi = ppi.filter(d => d.date >= startDate && d.date <= endDate);
+
+  const allData = cpi.concat(ppi);
+
+  //apply function to create growth rate
+  computeRate(cpi);
+  computeRate(ppi);
+
+  // x scale
+  const x = d3.scaleTime()
+    .domain([startDate, endDate])
+    .range([0, width]);
+
+  // y scale
+  const y = d3.scaleLinear()
+    .domain([d3.min(allData, d => d.growth), d3.max(allData, d => d.growth)])
+    .range([height, 0]);
+
+  // x axis
+  svg.append("g")
+    .attr("transform", `translate(0,${height})`)
+    .call(d3.axisBottom(x));
+
+  // y axis
+  svg.append("g")
+    .call(d3.axisLeft(y));
+
+  // line generator
+  const line = d3.line()
+    .x(d => x(d.date))
+    .y(d => y(d.growth));
+
+  // CPI line
+  svg.append("path")
+    .datum(cpi)
+    .attr("fill", "none")
+    .attr("stroke", "steelblue")
+    .attr("stroke-width", 2)
+    .attr("d", line);
+
+  // PPI line
+  svg.append("path")
+    .datum(ppi)
+    .attr("fill", "none")
+    .attr("stroke", "red")
+    .attr("stroke-width", 2)
+    .attr("d", line);
+
+});
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Pet Food Cost</title>
+  <script src="https://d3js.org/d3.v6.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    .page-title {
+      text-align: center;
+      font-size: 32px;
+      margin: 30px 20px;
+    }
+
+    .center-title{
+      text-align: center;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    a {
+      color: #1f77b4;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .step,
+    .full-section {
+      width: 100%;
+      padding: 60px;
+      box-sizing: border-box;
+    }
+
+    .three-sections {
+      display: flex;
+      width: 100%;
+      gap: 30px;
+      padding: 60px;
+      box-sizing: border-box;
+      align-items: flex-start;
+    }
+
+    .third-section {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .chart-container {
+      width: 100%;
+      min-width: 0;
+    }
+
+    #chart1 {
+      width: 100%;
+      height: 600px;
+      margin-top: 30px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #chart2,
+    #chart3,
+    #chart4,
+    #chart5 {
+      width: 100%;
+      margin-top: 20px;
+      overflow-x: auto;
+      position: relative;
+    }
+
+    #chart5-toggle {
+      margin-bottom: 10px;
+    }
+
+    .tooltip {
+      position: absolute;
+      visibility: hidden;
+      background: white;
+      border: 1px solid #ccc;
+      padding: 6px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      pointer-events: none;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+    .formula {
+      text-align: center;
+      font-size: 22px;
+      margin: 16px 0;
+      font-family: "Times New Roman", serif;
+    }
+    @media (max-width: 900px) {
+      .three-sections {
+        flex-direction: column;
+      }
+
+      .third-section {
+        width: 100%;
+      }
+
+      .step,
+      .full-section,
+      .three-sections {
+        padding: 30px 20px;
+      }
+
+      .page-title {
+        font-size: 26px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <h1 class="page-title">Pet Food Cost: CPI vs PPI for Cat and Dog Food</h1>
+  <h2 class="center-title"> Xiaomeng Liu</h2>
+
+  <section class="step">
+    <h2>Pet Food but Human Spending</h2>
+
+    <p>
+      Pets are becoming more popular than ever, while the cost of owning a pet is increasing.
+      Inspired by the webpage
+      <a href="https://www.petfoodindustry.com/business-strategy/article/15772425/economic-signs-pet-food-in-era-of-cost-challenges" target="_blank">
+        Economic signs that pet food may be in era of cost challenges
+      </a>
+      by Tim Wall, I decided to make a further study of the data.
+      From the page, we can find the source data from
+      <a href="https://fred.stlouisfed.org" target="_blank">Federal Reserve Bank of St. Louis</a>.
+    </p>
+
+    <p>
+      There are two main aspects we are learning about: the Consumer Price Index (CPI) and
+      the Producer Price Index (PPI). As described in the article, both measure different
+      points in the value chain, and the gap between them helps illustrate margin dynamics,
+      cost recovery, and pricing strategies across the industry. CPI represents pet food costs
+      for consumers, including pet food in general rather than only cat and dog food. PPI
+      represents the cost of production for pet food manufacturers.
+    </p>
+
+    <p>
+      These indices use a base year where the index equals 100. Each later value shows the
+      percentage change from that base year. For example, if the index is 150, the cost has
+      increased by 50% since the base year.
+    </p>
+
+    <p>
+      The original page focused on the relationship between CPI and PPI for dog food in
+      particular. That raised another question for me: what about cat food? Is cat PPI
+      different from dog PPI, and does comparing both give a better picture of pet food costs?
+      The following study explores those questions.
+    </p>
+
+    <p>
+      I start with a general comparison between CPI and PPI with both cat and dog food.
+      From the graph, we can see that they generally follow the same overall trend, which
+      suggests that production cost is closely related to the final cost faced by consumers.
+      This study uses data from 2002 to 2024, which covers a longer period than the original article.
+    </p>    
+    <div id="chart1"></div>
+  </section>
+
+  <!-- Three-column layout: chart2, chart4, chart3 -->
+  <div class="three-sections">
+    <section class="third-section">
+      <h2>What if we only look at Cats?</h2>
+      <p>
+        This graph explains the relationship between CPI and PPI for cat food.
+        You can move your mouse over the graph to see the exact value for each point.
+        The same date can also be reflected in the related comparison charts, GAPs and the dog graph.
+      </p>
+
+      <div class="chart-container">
+        <div id="chart2"></div>
+      </div>
+    </section>
+
+    <section class="third-section">
+      <h2>GAPs: CAT vs DOG</h2>
+      <p>
+        This chart focuses on the gap between CPI and PPI over time. It compares cat food
+        and dog food directly. The circles represent the size of the gap for each food type.
+      </p>
+
+      <div class="chart-container">
+        <div id="chart4"></div>
+      </div>
+
+      <p>
+        For much of the timeline, the cat-food gap is smaller than the dog-food gap.
+        This suggests that the difference between consumer price and producer price is often
+        lower for cat food than for dog food.
+      </p>
+    </section>
+
+    <section class="third-section">
+      <h2>What if we only look at Dogs?</h2>
+      <p>
+        Similarly, this graph explains the relationship between CPI and PPI for dog food.
+        This follows the same general idea as the original graph from the article, but now
+        appears alongside the cat-food comparison and the CPI–PPI gap chart.
+      </p>
+
+      <div class="chart-container">
+        <div id="chart3"></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="full-section">
+    <h2>Which Type of Food Has a Higher Inflation Rate?</h2>
+
+    <p>
+      Which food is facing a faster-growing cost over time? To answer this question,
+      I calculated the cumulative change in PPI for cat food and dog food. The change is 
+      using the average value of PPI in a year to compare with the base year's average. In 
+      our case, the base year is 2002. The cumulative change is then considered as a factor to
+      show how fast the prices of cat food and dog food were growing. 
+    </p>
+    <h3>Chart 5 Formula</h3>
+    <p class="formula">
+      Cumulative Change in Year y =
+      &Delta;<sub>1</sub> + &Delta;<sub>2</sub> + ... + &Delta;<sub>y</sub>
+    </p>
+
+    <p>
+      Here, <strong>&Delta;<sub>i</sub></strong> represents the yearly change in index value
+      for year <em>i</em>.
+    </p>
+
+    <p class="formula">
+      C(y) = &sum;<sub>i=1</sub><sup>y</sup> &Delta;<sub>i</sub>
+    </p>
+
+    <p>
+      For example, if the yearly changes are +3 in 2003 and +5 in 2004,
+      then the cumulative value in 2004 is 8 rather than just 5.
+    </p>
+    <p> PAUSE BELOW IF DESIRED</p>
+    <button id="chart5-toggle">Pause</button>
+    <div id="chart5"></div>
+    <p>It is intersting that the price has been raised so much. It is also obvious that the dog food is 
+      increasing faster and cat food even had a couple stoppage or decrease. It could be caused by the fact 
+      that people would always have a dog no matter how much the cost is. This could lead to a more inelastic
+      demand for dog food compared to cat food.
+    </p>
+    <p>ChatGPT5.4 was used in this page generation. It was used to copy the chart 1 to other charts with either same or 
+      different input data and variable names. Then I modified the other charts to the desired functions. It is also
+      used to search for templates and examples of visualizations in D3, especially for the last animation and interaction
+      among three charts. I also used it for debugging purposes.
+    </p>
+  </section>
+
+  <script src="shared.js"></script>
+  <script src="chart1.js"></script>
+  <script src="chart2.js"></script>
+  <script src="chart3.js"></script>
+  <script src="chart4.js"></script>
+  <script src="chart5.js"></script>
+</body>
+</html>
